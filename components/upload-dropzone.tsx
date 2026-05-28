@@ -31,11 +31,42 @@ function readImagePreview(file: File) {
     const reader = new FileReader();
 
     reader.addEventListener("load", () => {
-      resolve(typeof reader.result === "string" ? reader.result : null);
+      if (typeof reader.result !== "string") {
+        resolve(null);
+        return;
+      }
+
+      const image = new window.Image();
+
+      image.addEventListener("load", () => {
+        const maxSide = 1600;
+        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          resolve(null);
+          return;
+        }
+
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      });
+      image.addEventListener("error", () => resolve(null));
+      image.src = reader.result;
     });
     reader.addEventListener("error", () => resolve(null));
     reader.readAsDataURL(file);
   });
+}
+
+async function readErrorMessage(response: Response, fallback: string) {
+  const body = (await response.json().catch(() => null)) as { error?: string } | null;
+
+  return body?.error ?? fallback;
 }
 
 export function UploadDropzone({
@@ -124,7 +155,7 @@ export function UploadDropzone({
         });
 
         if (!confirmResponse.ok) {
-          throw new Error("Media confirmation failed");
+          throw new Error(await readErrorMessage(confirmResponse, "Media confirmation failed"));
         }
 
         setItems((current) =>
