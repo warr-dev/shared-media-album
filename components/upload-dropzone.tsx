@@ -4,6 +4,8 @@ import { Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { createSupabaseBrowserClient } from "@/lib/db/supabase-browser";
+
 type UploadState = {
   name: string;
   status: "queued" | "uploading" | "uploaded" | "failed";
@@ -127,9 +129,28 @@ export function UploadDropzone({
           uploadId: string;
           objectKey: string;
           uploadUrl: string;
+          uploadToken?: string;
+          storageProvider?: "supabase";
+          bucket?: string;
         };
 
-        if (!intent.uploadUrl.startsWith("dev://")) {
+        if (intent.storageProvider === "supabase") {
+          if (!intent.uploadToken || !intent.bucket) {
+            throw new Error("Supabase upload intent is incomplete");
+          }
+
+          const { error } = await createSupabaseBrowserClient()
+            .storage
+            .from(intent.bucket)
+            .uploadToSignedUrl(intent.objectKey, intent.uploadToken, file, {
+              contentType: file.type,
+              upsert: false
+            });
+
+          if (error) {
+            throw new Error(error.message);
+          }
+        } else if (!intent.uploadUrl.startsWith("dev://")) {
           const uploadResponse = await fetch(intent.uploadUrl, {
             method: "PUT",
             body: file,

@@ -22,6 +22,7 @@ guest identity.
 - TypeScript
 - Tailwind CSS
 - Supabase Auth/Postgres/RLS
+- Supabase Storage bucket for object storage
 - Cloudflare R2 optional for object storage
 - Vitest and Playwright
 
@@ -45,11 +46,13 @@ Minimum local Supabase values:
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-local-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-local-secret-key
+NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=event-media
 APP_PUBLIC_URL=http://localhost:3000
 ```
 
-Cloudflare values can stay empty for local development. Uploads will use local
-preview data when R2 is not configured.
+Create a Supabase Storage bucket named `event-media` in Studio. Cloudflare
+values can stay empty; when R2 is not configured, uploads use the Supabase
+Storage bucket.
 
 ## Local Supabase
 
@@ -127,3 +130,5 @@ npm run test:e2e
 - Album covers use `event_albums.cover_media_id`.
 - Multiple albums require migration `006_multiple_event_albums.sql`.
 - Album covers require migration `007_album_cover_media.sql`.
+- Supabase Storage uploads require a bucket matching
+  `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET` (`event-media` by default).

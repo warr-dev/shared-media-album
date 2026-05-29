@@ -23,3 +23,4 @@ test-results/
 .specify/*
 .agents/*
 AGENTS.md
+.vercel

@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 
+import { getPublicEnv } from "@/lib/config/env";
 import { createSignedPutUrl } from "@/lib/media/r2";
+import { createSupabaseSignedUpload } from "@/lib/media/supabase-storage";
 import type { MediaType } from "@/lib/db/schema-types";
 
 const contentTypes: Record<MediaType, string> = {
@@ -38,4 +40,28 @@ export async function createUploadIntent({
   });
 
   return { uploadId, objectKey, uploadUrl };
+}
+
+export async function createSupabaseStorageUploadIntent({
+  albumId,
+  mediaType,
+  filename
+}: {
+  albumId: string;
+  mediaType: MediaType;
+  filename: string;
+}) {
+  const uploadId = randomUUID();
+  const objectKey = createMediaObjectKey({ albumId, mediaType, filename });
+  const bucket = getPublicEnv().supabaseStorageBucket;
+  const signedUpload = await createSupabaseSignedUpload({ bucket, objectKey });
+
+  return {
+    uploadId,
+    objectKey,
+    uploadUrl: signedUpload.signedUrl,
+    uploadToken: signedUpload.token,
+    storageProvider: "supabase",
+    bucket
+  };
 }

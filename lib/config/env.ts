@@ -3,7 +3,8 @@ import { z } from "zod";
 const supabaseAdminEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1)
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET: z.string().min(1).optional()
 });
 
 const r2EnvSchema = z.object({
@@ -52,6 +53,7 @@ export function getPublicEnv(source?: NodeJS.ProcessEnv) {
     return {
       supabaseUrl: source.NEXT_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: source.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseStorageBucket: source.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET ?? "event-media",
       appPublicUrl: source.APP_PUBLIC_URL ?? "http://localhost:3000"
     };
   }
@@ -59,6 +61,7 @@ export function getPublicEnv(source?: NodeJS.ProcessEnv) {
   return {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseStorageBucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET ?? "event-media",
     appPublicUrl: process.env.APP_PUBLIC_URL ?? "http://localhost:3000"
   };
 }
