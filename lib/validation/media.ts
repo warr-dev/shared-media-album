@@ -6,7 +6,7 @@ export const createUploadIntentSchema = z.object({
   albumId: z.string().uuid(),
   filename: z.string().trim().min(1).max(240),
   mediaType: mediaTypeSchema,
-  byteSize: z.number().int().positive().max(1024 * 1024 * 500)
+  byteSize: z.number().int().positive().max(1024 * 1024 * 50)
 });
 
 export const confirmMediaUploadSchema = z.object({

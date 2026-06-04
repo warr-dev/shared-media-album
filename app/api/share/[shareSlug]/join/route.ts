@@ -19,7 +19,7 @@ function wantsHtmlRedirect(request: Request) {
 
 function joinResponse(request: Request, shareSlug: string, body: unknown) {
   if (wantsHtmlRedirect(request)) {
-    return NextResponse.redirect(new URL(`/a/${shareSlug}?joined=1`, request.url), 303);
+    return NextResponse.redirect(new URL(`/a/${shareSlug}?view=album&joined=1`, request.url), 303);
   }
 
   return NextResponse.json(body);
@@ -46,7 +46,7 @@ export async function POST(
     if (!hasSupabaseEnv()) {
       if (wantsHtmlRedirect(request)) {
         return NextResponse.redirect(
-          new URL(`/a/${shareSlug}?error=join-not-configured`, request.url),
+          new URL(`/a/${shareSlug}?view=album&error=join-not-configured`, request.url),
           303
         );
       }

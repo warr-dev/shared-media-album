@@ -8,11 +8,16 @@ import { useEffect, useState } from "react";
 export function QrSharePanel({
   eventId,
   link,
-  permissions
+  permissions,
+  albumLinks = []
 }: {
   eventId: string;
   link: string;
   permissions: string[];
+  albumLinks?: Array<{
+    id: string;
+    title: string;
+  }>;
 }) {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState(link);
@@ -69,6 +74,33 @@ export function QrSharePanel({
           <RefreshCw className="h-4 w-4" />
         </button>
       </div>
+      {albumLinks.length ? (
+        <div className="grid gap-2 border-t border-border pt-3">
+          <p className="text-sm font-medium">Album links</p>
+          {albumLinks.map((album) => {
+            const albumLink = `${shareLink}?view=album&albumId=${encodeURIComponent(album.id)}`;
+
+            return (
+              <div className="flex min-w-0 gap-2" key={album.id}>
+                <input
+                  aria-label={`${album.title} album link`}
+                  className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  readOnly
+                  value={albumLink}
+                />
+                <button
+                  aria-label={`Copy ${album.title} album link`}
+                  className="button-secondary h-10 w-10 px-0"
+                  onClick={() => navigator.clipboard.writeText(albumLink)}
+                  type="button"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
     </section>
   );
 }

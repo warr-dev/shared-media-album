@@ -2,6 +2,20 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/db/supabase-server";
 
+function getSignInErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+
+  if (
+    message === "fetch failed" ||
+    message.includes("ECONNREFUSED") ||
+    message.includes("Unexpected token '<'")
+  ) {
+    return "Could not reach Supabase Auth. Start local Supabase or update NEXT_PUBLIC_SUPABASE_URL in .env.local.";
+  }
+
+  return message || "Could not sign in.";
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const email = String(formData.get("email") ?? "").trim();
@@ -69,7 +83,7 @@ export async function POST(request: Request) {
       303
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not send sign-in link.";
+    const message = getSignInErrorMessage(error);
 
     return NextResponse.redirect(
       new URL(`/login?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`, request.url),

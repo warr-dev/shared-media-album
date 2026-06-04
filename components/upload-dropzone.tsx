@@ -12,6 +12,12 @@ type UploadState = {
   message?: string;
 };
 
+const maxUploadBytes = 1024 * 1024 * 50;
+
+function formatMegabytes(bytes: number) {
+  return `${Math.round(bytes / 1024 / 1024)} MB`;
+}
+
 function getMediaType(file: File) {
   if (file.type.startsWith("image/")) {
     return "image";
@@ -73,10 +79,12 @@ async function readErrorMessage(response: Response, fallback: string) {
 
 export function UploadDropzone({
   albumId,
-  compact = false
+  compact = false,
+  variant = "default"
 }: {
   albumId: string;
   compact?: boolean;
+  variant?: "default" | "guest";
 }) {
   const router = useRouter();
   const [items, setItems] = useState<UploadState[]>([]);
@@ -103,6 +111,21 @@ export function UploadDropzone({
         continue;
       }
 
+      if (file.size > maxUploadBytes) {
+        setItems((current) =>
+          current.map((item) =>
+            item.name === file.name
+              ? {
+                  ...item,
+                  status: "failed",
+                  message: `File is too large. Max ${formatMegabytes(maxUploadBytes)}.`
+                }
+              : item
+          )
+        );
+        continue;
+      }
+
       setItems((current) =>
         current.map((item) =>
           item.name === file.name ? { ...item, status: "uploading" } : item
@@ -122,7 +145,7 @@ export function UploadDropzone({
         });
 
         if (!intentResponse.ok) {
-          throw new Error("Upload intent failed");
+          throw new Error(await readErrorMessage(intentResponse, "Upload intent failed"));
         }
 
         const intent = (await intentResponse.json()) as {
@@ -200,6 +223,53 @@ export function UploadDropzone({
     }
 
     router.refresh();
+  }
+
+  if (variant === "guest") {
+    return (
+      <section className="grid gap-3 text-center">
+        <label className="guest-pressable grid h-14 cursor-pointer place-items-center rounded-lg bg-[#a9cfbd] px-5 text-[#034326] shadow-sm transition duration-200 hover:bg-[#98c3ae]">
+          <span className="inline-flex items-center gap-3 text-2xl font-semibold">
+            <Upload className="h-7 w-7" strokeWidth={2.5} />
+            Upload
+          </span>
+          <span className="sr-only">Choose photos and videos</span>
+          <input
+            accept="image/*,video/*"
+            className="sr-only"
+            multiple
+            onChange={(event) => uploadFiles(event.currentTarget.files)}
+            type="file"
+          />
+        </label>
+        {items.length ? (
+          <ul className="grid gap-2 text-sm">
+            {items.map((item) => (
+              <li
+                className={
+                  item.status === "uploaded"
+                    ? "grid gap-1 rounded-md bg-[#0aff3f] px-3 py-2 text-left text-black"
+                    : "grid gap-1 rounded-md bg-[#d9d9d9] px-3 py-2 text-left text-black"
+                }
+                key={item.name}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 truncate">{item.name}</span>
+                  <span className={item.status === "failed" ? "text-destructive" : ""}>
+                    {item.message ?? (item.status === "uploaded" ? "Uploaded!" : item.status === "uploading" ? "Uploading..." : item.status)}
+                  </span>
+                </div>
+                {item.status === "uploading" ? (
+                  <span className="h-2 overflow-hidden rounded-full bg-white/70">
+                    <span className="block h-full w-2/3 animate-pulse rounded-full bg-[#0aff3f]" />
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
+    );
   }
 
   return (

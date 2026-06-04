@@ -36,6 +36,16 @@ export function buildNickname(seed: number) {
   return `${adjective} ${noun} ${suffix}`;
 }
 
+export function buildNicknameSeed(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
 export async function assignNicknameForAlbum(
   supabase: SupabaseClient<Database>,
   {
@@ -77,11 +87,13 @@ export async function assignNicknameForAlbum(
     throw eventNicknameError;
   }
 
-  for (let index = 0; index < 500; index += 1) {
+  const nicknameSeed = buildNicknameSeed(`${albumId}:${sessionKeyHash}`);
+
+  for (let index = 0; index < 10000; index += 1) {
     const displayName =
       existingEventNickname?.display_name && index === 0
         ? existingEventNickname.display_name
-        : buildNickname(index);
+        : buildNickname(nicknameSeed + index);
     const { data, error } = await supabase
       .from("client_nicknames")
       .insert({

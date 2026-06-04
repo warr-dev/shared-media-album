@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ImageIcon, X, Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, ImageIcon, X, Video } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
@@ -26,10 +26,12 @@ export type MediaAlbumOption = {
 
 export function MediaGrid({
   items,
-  albumOptions = []
+  albumOptions = [],
+  variant = "default"
 }: {
   items: MediaGridItem[];
   albumOptions?: MediaAlbumOption[];
+  variant?: "default" | "guest";
 }) {
   const [previewItem, setPreviewItem] = useState<MediaGridItem | null>(null);
   const previewIndex = previewItem
@@ -102,13 +104,23 @@ export function MediaGrid({
   }
 
   return (
-    <section className="grid auto-rows-[6.5rem] grid-cols-2 gap-1 sm:auto-rows-[8.5rem] sm:grid-cols-4 lg:auto-rows-[9.5rem] lg:grid-cols-6">
+    <section
+      className={
+        variant === "guest"
+          ? "guest-stagger grid grid-cols-3 gap-1"
+          : "grid auto-rows-[6.5rem] grid-cols-2 gap-1 sm:auto-rows-[8.5rem] sm:grid-cols-4 lg:auto-rows-[9.5rem] lg:grid-cols-6"
+      }
+    >
       {items.map((item) => {
         const Icon = item.media_type === "video" ? Video : ImageIcon;
 
         return (
           <article
-            className="group relative overflow-hidden rounded-[3px] bg-muted"
+            className={
+              variant === "guest"
+                ? "group relative aspect-square overflow-hidden rounded-[3px] bg-muted transition duration-200 ease-out hover:z-10 hover:scale-[1.015] hover:shadow-lg"
+                : "group relative overflow-hidden rounded-[3px] bg-muted transition duration-200 ease-out hover:z-10 hover:scale-[1.015] hover:shadow-lg"
+            }
             key={item.id}
           >
             <button
@@ -154,7 +166,110 @@ export function MediaGrid({
           </article>
         );
       })}
-      {previewItem ? (
+      {previewItem && variant === "guest" ? (
+        <div
+          className="fixed inset-0 z-50 grid bg-black px-5 pb-8 pt-9 text-white"
+          onClick={() => setPreviewItem(null)}
+          role="presentation"
+        >
+          <button
+            className="guest-pressable mb-8 inline-flex w-fit items-center gap-3 text-2xl"
+            onClick={() => setPreviewItem(null)}
+            type="button"
+          >
+            <ChevronLeft className="h-9 w-9" />
+            back
+          </button>
+          <div className="relative grid min-h-0 place-items-center" onClick={(event) => event.stopPropagation()} role="presentation">
+            <div className="relative h-[58vh] w-full overflow-hidden rounded-md bg-black">
+              {previewItem.preview_data_url ? (
+                <Image
+                  alt={previewItem.original_filename ?? "Media preview"}
+                  className="object-contain"
+                  fill
+                  sizes="100vw"
+                  src={previewItem.preview_data_url}
+                  unoptimized
+                />
+              ) : (
+                <div className="grid h-full place-items-center">
+                  {previewItem.media_type === "video" ? (
+                    <Video className="h-12 w-12 text-white/60" />
+                  ) : (
+                    <ImageIcon className="h-12 w-12 text-white/60" />
+                  )}
+                </div>
+              )}
+            </div>
+            {canNavigate ? (
+              <>
+                <button
+                  aria-label="Previous media"
+                  className="guest-pressable absolute left-[-1.35rem] top-1/2 grid h-14 w-14 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openPrevious();
+                  }}
+                  type="button"
+                >
+                  <ChevronLeft className="h-12 w-12" />
+                </button>
+                <button
+                  aria-label="Next media"
+                  className="guest-pressable absolute right-[-1.35rem] top-1/2 grid h-14 w-14 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openNext();
+                  }}
+                  type="button"
+                >
+                  <ChevronRight className="h-12 w-12" />
+                </button>
+              </>
+            ) : null}
+          </div>
+          <div className="mt-7 flex gap-3 overflow-x-auto pb-1">
+            {items.slice(0, 8).map((item) => (
+              <button
+                aria-label={`Open ${item.original_filename ?? item.media_type}`}
+                className={
+                  item.id === previewItem.id
+                    ? "relative h-20 w-20 shrink-0 overflow-hidden rounded-sm border-2 border-white bg-white/10"
+                    : "relative h-20 w-20 shrink-0 overflow-hidden rounded-sm bg-white/10 opacity-55 transition hover:opacity-90"
+                }
+                key={item.id}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setPreviewItem(item);
+                }}
+                type="button"
+              >
+                {item.preview_data_url ? (
+                  <Image
+                    alt=""
+                    className="object-cover"
+                    fill
+                    sizes="80px"
+                    src={item.preview_data_url}
+                    unoptimized
+                  />
+                ) : null}
+              </button>
+            ))}
+          </div>
+          {previewItem.preview_data_url ? (
+            <a
+              className="guest-pressable mt-8 inline-flex h-16 items-center justify-center gap-4 rounded-md bg-white text-3xl font-medium text-black"
+              download={previewItem.original_filename ?? "wedding-media"}
+              href={previewItem.preview_data_url}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Download className="h-9 w-9" />
+              Download
+            </a>
+          ) : null}
+        </div>
+      ) : previewItem ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/90 p-3 pb-20 sm:p-6"
           onClick={() => setPreviewItem(null)}

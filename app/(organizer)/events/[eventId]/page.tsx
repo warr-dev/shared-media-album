@@ -56,6 +56,7 @@ export default async function EventDetailPage({
         <AlbumForm eventId={detail.event.id} />
         {detail.share ? (
           <QrSharePanel
+            albumLinks={albumOptions}
             eventId={detail.event.id}
             link={createShareLink(detail.share.slug)}
             permissions={detail.share.permissions}
@@ -141,7 +142,12 @@ export default async function EventDetailPage({
       </div>
       {managerStatus.isManager ? <AlbumForm eventId={event.id} /> : null}
       {managerStatus.isManager && share ? (
-        <QrSharePanel eventId={event.id} link={createShareLink(share.slug)} permissions={share.permissions} />
+        <QrSharePanel
+          albumLinks={albumOptions}
+          eventId={event.id}
+          link={createShareLink(share.slug)}
+          permissions={share.permissions}
+        />
       ) : null}
       <AlbumGalleryList
         albums={mediaByAlbum.map(({ album, mediaItems }) => ({
