@@ -474,3 +474,38 @@ export function toDevShareResponse(share: DevShareAccess) {
     permissions: share.permissions
   };
 }
+
+export async function updateDevNickname(
+  slug: string,
+  sessionKeyHash: string,
+  newNickname: string
+) {
+  const store = await readStore();
+  const share = store.shares.find((item) => item.slug === slug && item.state === "active");
+
+  if (!share) {
+    return null;
+  }
+
+  const eventNicknames = store.nicknames.filter(
+    (item) => item.event_id === share.event_id && item.session_key_hash === sessionKeyHash
+  );
+
+  for (const nick of eventNicknames) {
+    nick.display_name = newNickname;
+  }
+
+  // Also update nicknames on existing media uploads for consistency in dev view
+  for (const media of store.media) {
+    const isUploader = store.participants.some(
+      (p) => p.id === media.uploader_participant_id && 
+             store.nicknames.some(n => n.id === p.nickname_id && n.session_key_hash === sessionKeyHash && n.event_id === share.event_id)
+    );
+    if (isUploader) {
+      media.nickname = newNickname;
+    }
+  }
+
+  await writeStore(store);
+  return { success: true };
+}

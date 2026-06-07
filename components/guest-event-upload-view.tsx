@@ -1,6 +1,6 @@
 "use client";
 
-import { Upload } from "lucide-react";
+import { Upload, Edit2, Check, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -22,6 +22,7 @@ type UploadState = {
   name: string;
   status: "queued" | "uploading" | "uploaded" | "failed";
   message?: string;
+  isFadingOut?: boolean;
 };
 
 const maxUploadBytes = 1024 * 1024 * 50;
@@ -91,11 +92,13 @@ function formatMegabytes(bytes: number) {
 export function GuestEventUploadView({
   albumSections,
   canUpload,
-  shareSlug
+  shareSlug,
+  currentNickname
 }: {
   albumSections: GuestEventUploadSection[];
   canUpload: boolean;
   shareSlug: string;
+  currentNickname?: string | null;
 }) {
   const router = useRouter();
   const [selectedAlbumId, setSelectedAlbumId] = useState(albumSections[0]?.album.id ?? null);
@@ -104,6 +107,40 @@ export function GuestEventUploadView({
     albumSections.find(({ album }) => album.id === selectedAlbumId) ?? albumSections[0] ?? null;
   const albumOptions: MediaAlbumOption[] = albumSections.map(({ album }) => album);
 
+  const [nickname, setNickname] = useState(currentNickname ?? "");
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [newNickname, setNewNickname] = useState(nickname);
+  const [isSavingNickname, setIsSavingNickname] = useState(false);
+
+  async function handleSaveNickname() {
+    if (!newNickname.trim() || newNickname.trim() === nickname) {
+      setIsEditingNickname(false);
+      return;
+    }
+
+    setIsSavingNickname(true);
+    try {
+      const res = await fetch(`/api/share/${shareSlug}/nickname`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ nickname: newNickname })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNickname(data.nickname);
+        setIsEditingNickname(false);
+        router.refresh();
+      } else {
+        alert("Failed to update nickname.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred.");
+    } finally {
+      setIsSavingNickname(false);
+    }
+  }
+
   async function uploadFiles(files: FileList | null) {
     if (!files?.length || !selectedAlbum) {
       return;
@@ -111,6 +148,20 @@ export function GuestEventUploadView({
 
     const selected = Array.from(files);
     setItems(selected.map((file) => ({ name: file.name, status: "queued" })));
+
+    function triggerFadeTimeout(fileName: string) {
+      setTimeout(() => {
+        setItems((current) =>
+          current.map((item) =>
+            item.name === fileName ? { ...item, isFadingOut: true } : item
+          )
+        );
+      }, 5000);
+
+      setTimeout(() => {
+        setItems((current) => current.filter((item) => item.name !== fileName));
+      }, 6000);
+    }
 
     for (const file of selected) {
       const mediaType = getMediaType(file);
@@ -123,6 +174,7 @@ export function GuestEventUploadView({
               : item
           )
         );
+        triggerFadeTimeout(file.name);
         continue;
       }
 
@@ -138,6 +190,7 @@ export function GuestEventUploadView({
               : item
           )
         );
+        triggerFadeTimeout(file.name);
         continue;
       }
 
@@ -222,6 +275,7 @@ export function GuestEventUploadView({
             item.name === file.name ? { ...item, status: "uploaded" } : item
           )
         );
+        triggerFadeTimeout(file.name);
       } catch (error) {
         setItems((current) =>
           current.map((item) =>
@@ -234,6 +288,7 @@ export function GuestEventUploadView({
               : item
           )
         );
+        triggerFadeTimeout(file.name);
       }
     }
 
@@ -241,32 +296,38 @@ export function GuestEventUploadView({
   }
 
   return (
-    <section className="guest-screen mx-auto min-h-screen w-full max-w-[430px] overflow-hidden bg-[#e9e9e9] text-[#034326] shadow-sm">
+    <section className="guest-screen mx-auto min-h-screen w-full max-w-[430px] overflow-hidden bg-white text-[#034326] shadow-sm flex flex-col">
+      {/* Top Banner with Background Image */}
       <div
-        className="relative flex min-h-[45svh] flex-col overflow-hidden bg-[#7f7b74] px-4 pb-5 pt-9 text-white"
+        className="relative flex min-h-[42svh] flex-col overflow-hidden bg-[#7f7b74] px-5 pb-6 pt-10 text-white shrink-0"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(255,255,255,0.18),transparent_24%),radial-gradient(circle_at_80%_18%,rgba(255,255,255,0.14),transparent_20%),linear-gradient(135deg,rgba(40,35,31,0.35),rgba(120,114,104,0.2)_42%,rgba(20,20,20,0.55))]" />
-        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/75 via-black/35 to-transparent" />
-        <div className="relative ml-4 grid h-20 w-20 shrink-0 place-items-center rounded-full bg-white text-[#a86618] shadow-sm">
-          <span className="font-serif text-[32px] leading-none">R</span>
-          <span className="absolute text-[24px] italic">&amp;</span>
-          <span className="absolute bottom-4 right-4 font-serif text-[32px] leading-none">M</span>
-        </div>
-        <div className="guest-stagger relative mt-auto grid gap-4 text-center">
-          <p className="mx-auto max-w-[21rem] px-3 text-[17px] font-medium leading-6">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ 
+            backgroundImage: "url('https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800&auto=format&fit=crop')" 
+          }}
+        />
+        <div className="absolute inset-0 bg-black/35" />
+        <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+        {/* Text Overlay */}
+        <div className="guest-stagger relative mt-auto grid gap-5 text-center z-10">
+          <p className="mx-auto max-w-[21rem] px-2 text-[16px] font-bold leading-6 text-white drop-shadow-md">
             Got a photo from the wedding? Any picture will do even the
             bloopers, selfies, or your plate of food!
           </p>
+
+          {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-3">
             <label
               className={
                 canUpload
-                  ? "guest-pressable grid h-14 min-w-0 cursor-pointer place-items-center rounded-lg bg-[#a9cfbd] px-3 text-[19px] font-semibold text-[#034326]"
-                  : "grid h-14 min-w-0 place-items-center rounded-lg bg-[#a9cfbd]/60 px-3 text-[19px] font-semibold text-[#034326]/60"
+                  ? "guest-pressable grid h-14 min-w-0 cursor-pointer place-items-center rounded-xl bg-[#7fa08e] hover:bg-[#8eb09e] px-3 text-[19px] font-semibold text-white shadow-md transition-all"
+                  : "grid h-14 min-w-0 place-items-center rounded-xl bg-[#7fa08e]/60 px-3 text-[19px] font-semibold text-white/60"
               }
             >
               <span className="inline-flex min-w-0 items-center gap-2">
-                <Upload className="h-7 w-7 shrink-0" />
+                <Upload className="h-6 w-6 shrink-0" />
                 Upload
               </span>
               <input
@@ -279,54 +340,119 @@ export function GuestEventUploadView({
               />
             </label>
             <Link
-              className="guest-pressable grid h-14 min-w-0 place-items-center rounded-lg bg-black px-3 text-[18px] font-semibold leading-tight text-white"
-              href={`/a/${shareSlug}?view=message`}
+              className="guest-pressable grid h-14 min-w-0 place-items-center rounded-xl bg-black hover:bg-black/90 px-3 text-[18px] font-semibold leading-tight text-white shadow-md transition-all"
+              href={`/a/${shareSlug}?view=album`}
             >
-              Leave a message
+              Gallery
             </Link>
           </div>
+
+          {/* File Upload Progress Bars */}
           {items.length ? (
-            <ul className="grid gap-2 text-sm">
-              {items.map((item) => (
-                <li
-                  className={
-                    item.status === "uploaded"
-                      ? "grid gap-1 rounded-md bg-[#0aff3f] px-4 py-2 text-left text-black"
-                      : "grid gap-1 rounded-md bg-[#d9d9d9] px-4 py-2 text-left text-black"
-                  }
-                  key={item.name}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate">{item.name}</span>
-                    <span>
+            <ul className="grid gap-2 text-sm text-left">
+              {items.map((item) => {
+                const isUploaded = item.status === "uploaded";
+                const isUploading = item.status === "uploading";
+                const isFailed = item.status === "failed";
+                
+                return (
+                  <li
+                    className={`relative overflow-hidden rounded-lg h-10 flex items-center justify-between px-4 text-xs font-bold text-black bg-white/70 border border-black/5 transition-opacity duration-1000 ${
+                      item.isFadingOut ? "opacity-0" : "opacity-100"
+                    }`}
+                    key={item.name}
+                  >
+                    {/* Green Progress Fill */}
+                    <div 
+                      className={`absolute inset-y-0 left-0 transition-all duration-500 ease-out ${
+                        isUploaded 
+                          ? "w-full bg-[#00ff40]" 
+                          : isUploading 
+                            ? "w-2/3 bg-[#00ff40] animate-pulse" 
+                            : isFailed
+                              ? "w-full bg-red-400"
+                              : "w-0"
+                      }`}
+                    />
+                    
+                    <span className="relative z-10 truncate max-w-[70%]">{item.name}</span>
+                    <span className="relative z-10">
                       {item.message ??
-                        (item.status === "uploaded"
+                        (isUploaded
                           ? "Uploaded!"
-                          : item.status === "uploading"
+                          : isUploading
                             ? "Uploading..."
                             : item.status)}
                     </span>
-                  </div>
-                  {item.status === "uploading" ? (
-                    <span className="h-2 overflow-hidden rounded-full bg-white/70">
-                      <span className="block h-full w-2/3 animate-pulse rounded-full bg-[#0aff3f]" />
-                    </span>
-                  ) : null}
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
         </div>
       </div>
 
-      <div className="guest-panel-rise -mt-5 rounded-t-[22px] bg-[#e9e9e9] px-4 pb-6 pt-6">
+      {/* Bottom Panel containing Album Switcher and Gallery Grid */}
+      <div className="guest-panel-rise flex-1 -mt-5 rounded-t-[22px] bg-white px-4 pb-8 pt-6 z-20">
         <div className="guest-fade-up grid gap-6">
-          {albumSections.length > 1 ? (
+          {/* Nickname Editor Widget */}
+          {nickname && (
+            <div className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm">
+              {isEditingNickname ? (
+                <div className="flex items-center gap-2 w-full">
+                  <input
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-black text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#7fa08e]"
+                    value={newNickname}
+                    onChange={(e) => setNewNickname(e.target.value)}
+                    disabled={isSavingNickname}
+                    maxLength={30}
+                    placeholder="Enter nickname"
+                    type="text"
+                  />
+                  <button
+                    className="h-8 w-8 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center justify-center shrink-0 shadow-sm"
+                    onClick={handleSaveNickname}
+                    disabled={isSavingNickname}
+                    type="button"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    className="h-8 w-8 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg flex items-center justify-center shrink-0"
+                    onClick={() => {
+                      setNewNickname(nickname);
+                      setIsEditingNickname(false);
+                    }}
+                    disabled={isSavingNickname}
+                    type="button"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="font-semibold text-gray-600 text-xs flex items-center">
+                    Posting as: <span className="text-[#034326] font-bold text-sm bg-[#e6f2eb] px-2.5 py-1 rounded-md ml-1.5">{nickname}</span>
+                  </p>
+                  <button
+                    className="flex items-center gap-1 text-xs font-bold text-[#7fa08e] hover:text-[#5d806d] transition-colors"
+                    onClick={() => setIsEditingNickname(true)}
+                    type="button"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                    Edit
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {albumSections.length > 0 ? (
             <div className="grid gap-4">
-              <p className="text-[20px] leading-7 text-[#444]">
+              <p className="text-[15px] font-medium leading-normal text-[#555] text-center">
                 Choose the album where each photo or video belongs.
               </p>
-              <div className="guest-stagger grid grid-cols-3 gap-3">
+              <div className="guest-stagger flex flex-wrap justify-center gap-2">
                 {albumSections.map(({ album }) => {
                   const selected = album.id === selectedAlbum?.album.id;
 
@@ -334,8 +460,8 @@ export function GuestEventUploadView({
                     <button
                       className={
                         selected
-                          ? "guest-pressable h-14 min-w-0 rounded-full bg-black px-3 text-[18px] font-medium text-white shadow-md"
-                          : "guest-pressable h-14 min-w-0 rounded-full bg-[#d1d1d1] px-3 text-[18px] font-medium text-[#777]"
+                          ? "guest-pressable h-10 px-6 rounded-full bg-black text-sm font-bold text-white shadow-md transition-all"
+                          : "guest-pressable h-10 px-6 rounded-full bg-[#efefef] text-sm font-bold text-[#555] transition-all"
                       }
                       key={album.id}
                       onClick={() => setSelectedAlbumId(album.id)}
@@ -354,6 +480,15 @@ export function GuestEventUploadView({
             items={selectedAlbum?.items ?? []}
             variant="guest"
           />
+
+          <div className="mt-8 flex justify-center pb-4 border-t border-gray-100 pt-6">
+            <Link
+              className="guest-pressable inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#034326] px-6 text-sm font-bold text-white shadow-md hover:bg-[#034326]/90 transition-all"
+              href={`/a/${shareSlug}?view=message`}
+            >
+              ✍️ Leave a message
+            </Link>
+          </div>
         </div>
       </div>
     </section>

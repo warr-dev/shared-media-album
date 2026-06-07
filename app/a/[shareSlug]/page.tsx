@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 
 import { GuestEventUploadView } from "@/components/guest-event-upload-view";
 import { GuestAlbumView } from "@/components/guest-album-view";
+import { GuestMessageView } from "@/components/guest-message-view";
 import type { MediaGridItem } from "@/components/media-grid";
 import { getGuestSessionKey, hashGuestSessionKey } from "@/lib/auth/guest-session";
 import { hasSupabaseEnv } from "@/lib/config/env";
@@ -92,17 +94,20 @@ function GuestShareIntro({
 function GuestUploadScreen({
   shareSlug,
   canUpload,
-  albumSections
+  albumSections,
+  currentNickname
 }: {
   shareSlug: string;
   canUpload: boolean;
   albumSections: GuestAlbumSection[];
+  currentNickname?: string | null;
 }) {
   return (
     <GuestEventUploadView
       albumSections={albumSections}
       canUpload={canUpload}
       shareSlug={shareSlug}
+      currentNickname={currentNickname}
     />
   );
 }
@@ -117,36 +122,43 @@ function GuestPhotosScreen({
   selectedAlbumId?: string | null;
 }) {
   return (
-    <section className="guest-screen mx-auto min-h-screen w-full max-w-[430px] overflow-hidden bg-[#f7faf8] text-[#034326] shadow-sm">
-      <div className="relative overflow-hidden bg-[#d8ece1] px-6 pb-8 pt-7">
-        <div className="absolute inset-0 opacity-50">
-          <div className="absolute -left-24 top-7 h-44 w-72 rotate-[-18deg] rounded-full border border-[#8fb9a6]" />
-          <div className="absolute right-[-80px] top-0 h-52 w-52 rounded-full bg-[#c8ddd2]" />
-          <div className="absolute left-10 top-8 h-3 w-3 rounded-full bg-white" />
-          <div className="absolute right-20 top-16 h-2 w-2 rounded-full bg-[#7da08e]" />
-          <div className="absolute right-8 top-28 h-3 w-3 rounded-full bg-white" />
+    <section className="guest-screen mx-auto min-h-screen w-full max-w-[430px] overflow-hidden bg-white text-[#034326] shadow-sm flex flex-col">
+      {/* Top Banner with Background Image */}
+      <div
+        className="relative flex min-h-[38svh] flex-col overflow-hidden bg-[#7f7b74] px-5 pb-6 pt-16 text-white shrink-0"
+      >
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ 
+            backgroundImage: "url('https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800&auto=format&fit=crop')" 
+          }}
+        />
+        <div className="absolute inset-0 bg-black/35" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+        {/* Back Button */}
+        <div className="absolute top-6 left-6 z-10">
+          <Link
+            className="guest-pressable inline-flex items-center gap-2 bg-black border border-white/20 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-md"
+            href={`/a/${shareSlug}?view=upload`}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            back
+          </Link>
         </div>
-        <div className="relative mx-auto grid h-32 w-32 place-items-center rounded-full bg-white text-[#a86618] shadow-sm">
-          <span className="font-serif text-5xl leading-none">R</span>
-          <span className="absolute text-4xl italic">&amp;</span>
-          <span className="absolute bottom-6 right-7 font-serif text-5xl leading-none">M</span>
+
+        {/* Text Overlay */}
+        <div className="guest-stagger relative mt-auto text-center z-10">
+          <p className="mx-auto max-w-[21rem] px-2 text-[16px] font-bold leading-6 text-white drop-shadow-md">
+            Got a photo from the wedding? Any picture will do even the
+            bloopers, selfies, or your plate of food!
+          </p>
         </div>
       </div>
 
-      <div className="guest-panel-rise -mt-6 rounded-t-[22px] bg-[#f7faf8] px-4 pb-6 pt-6">
-        <div className="guest-fade-up grid h-14 grid-cols-2 rounded-xl bg-[#d9d9d9] p-0.5 text-[18px] shadow-inner">
-          <Link
-            className="guest-pressable grid place-items-center rounded-xl text-[#777] hover:text-[#034326]"
-            href={`/a/${shareSlug}?view=upload`}
-          >
-            Upload Photo
-          </Link>
-          <span className="grid place-items-center rounded-xl bg-[#a9cfbd] font-semibold text-[#034326] shadow-md">
-            Photos
-          </span>
-        </div>
-
-        <div className="guest-fade-up mt-6">
+      {/* Main Panel Content */}
+      <div className="guest-panel-rise flex-1 -mt-5 rounded-t-[22px] bg-white px-4 pb-8 pt-6 z-20">
+        <div className="guest-fade-up">
           <GuestAlbumView albumSections={albumSections} initialAlbumId={selectedAlbumId} />
         </div>
       </div>
@@ -165,6 +177,7 @@ export default async function ShareLandingPage({
   const query = searchParams ? await searchParams : {};
   const showAlbum = query.view === "album";
   const showUpload = query.view === "upload";
+  const showMessage = query.view === "message";
 
   if (!hasSupabaseEnv()) {
     const detail = await getDevShareLanding(shareSlug);
@@ -175,13 +188,22 @@ export default async function ShareLandingPage({
 
     const albums = detail.albums.length ? detail.albums : detail.album ? [detail.album] : [];
 
-    if (!showAlbum && !showUpload) {
+    if (!showAlbum && !showUpload && !showMessage) {
       return (
         <GuestShareIntro
           albumCount={albums.length}
           eventName={detail.event?.name}
           eventType={detail.event?.event_type}
           shareSlug={shareSlug}
+        />
+      );
+    }
+
+    if (showMessage) {
+      return (
+        <GuestMessageView
+          shareSlug={shareSlug}
+          eventName={detail.event?.name}
         />
       );
     }
@@ -198,6 +220,8 @@ export default async function ShareLandingPage({
           mediaItems: await listDevAlbumMedia(album.id)
         }))
       );
+
+      const currentNickname = uploadAlbumSections.find((s) => s.joinedGuest?.nickname)?.joinedGuest?.nickname ?? null;
 
       return (
         <GuestUploadScreen
@@ -219,6 +243,7 @@ export default async function ShareLandingPage({
               can_set_cover: false
             }))
           }))}
+          currentNickname={currentNickname}
           canUpload={detail.share.permissions.includes("upload")}
           shareSlug={shareSlug}
         />
@@ -283,13 +308,22 @@ export default async function ShareLandingPage({
       .order("created_at", { ascending: true })
   ]);
 
-  if (!showAlbum && !showUpload) {
+  if (!showAlbum && !showUpload && !showMessage) {
     return (
       <GuestShareIntro
         albumCount={albums?.length ?? 0}
         eventName={event?.name}
         eventType={event?.event_type}
         shareSlug={shareSlug}
+      />
+    );
+  }
+
+  if (showMessage) {
+    return (
+      <GuestMessageView
+        shareSlug={shareSlug}
+        eventName={event?.name}
       />
     );
   }
@@ -321,10 +355,13 @@ export default async function ShareLandingPage({
         return {
           album,
           participant,
+          nickname,
           mediaItems: await listAlbumMedia(supabase, album.id)
         };
       })
     );
+
+    const currentNickname = uploadAlbumSections.find((s) => s.nickname?.display_name)?.nickname?.display_name ?? null;
 
     return (
       <GuestUploadScreen
@@ -346,6 +383,7 @@ export default async function ShareLandingPage({
             can_set_cover: false
           }))
         }))}
+        currentNickname={currentNickname}
         canUpload={share.permissions.includes("upload")}
         shareSlug={shareSlug}
       />

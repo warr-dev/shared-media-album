@@ -50,9 +50,43 @@ NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=event-media
 APP_PUBLIC_URL=http://localhost:3000
 ```
 
+`NEXT_PUBLIC_SUPABASE_URL` is the Supabase API URL. For a hosted Supabase
+project, use `https://YOUR_PROJECT_REF.supabase.co`. Do not set it to the
+deployed application URL.
+
+`APP_PUBLIC_URL` is the public URL of this application. For the production
+Vercel deployment, use `https://shared-media-album.vercel.app`.
+
 Create a Supabase Storage bucket named `event-media` in Studio. Cloudflare
 values can stay empty; when R2 is not configured, uploads use the Supabase
 Storage bucket.
+
+## Vercel Deployment
+
+Set the hosted Supabase and application URLs:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+APP_PUBLIC_URL=https://shared-media-album.vercel.app
+```
+
+Add or replace a production environment variable:
+
+```bash
+npx --yes vercel@latest env add ENV_NAME production --force --yes --value ENV_VALUE
+```
+
+For example:
+
+```bash
+npx --yes vercel@latest env add NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET production --force --yes --value event-media
+```
+
+Redeploy after changing a Vercel environment variable:
+
+```bash
+npx --yes vercel@latest deploy --prod --yes
+```
 
 ## Local Supabase
 

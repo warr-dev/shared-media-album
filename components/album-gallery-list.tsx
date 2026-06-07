@@ -93,7 +93,7 @@ export function AlbumGalleryList({ albums }: { albums: AlbumGalleryListItem[] })
         </section>
 
         <section className="rounded-md border border-border bg-card p-1 shadow-sm sm:p-2">
-          <MediaGrid albumOptions={selectedAlbum.albumOptions ?? []} items={selectedAlbum.items} />
+          <MediaGrid albumOptions={selectedAlbum.albumOptions ?? []} items={selectedAlbum.items} variant="guest" />
         </section>
       </section>
     );
