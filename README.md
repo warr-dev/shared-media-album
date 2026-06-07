@@ -6,15 +6,17 @@ guest identity.
 
 ## Features
 
-- Supabase Auth for event manager accounts
-- Event creation with shareable QR/link
-- Multiple albums per event
-- Participant upload from event QR/link
-- Same participant nickname across albums in one event
-- Album-style navigation with cover thumbnails
-- Media preview with previous/next navigation
-- Manager actions for tagging, setting album cover, moving, and copying media
-- Local development fallback for uploads when Cloudflare R2 is not configured
+- **Supabase Auth & Database**: Event manager accounts, secure Row Level Security (RLS) policies.
+- **Event Management**: Event creation with shareable event links and dynamic QR codes.
+- **Multiple Albums**: Multiple albums per event, with cover image selection and tagging capabilities.
+- **Mobile Guest Portal**:
+  - Immersive, wedding-themed mobile user interface for uploads and gallery browsing.
+  - Interactive album switching pills and album cover grid cards ("All Photos" virtual album + individual albums).
+  - Inline guest nickname editor widget (updates persist across all event albums).
+  - Full-screen media preview lightbox using React Portals with smooth animations, next/prev navigation chevrons, close (X) button, and scrollable thumbnail strips.
+  - Dynamic file upload progress bars that fade out smoothly 5 seconds after completion.
+  - "Leave a Message" guest wish-card writer (saves guest messages securely).
+- **Hybrid Storage**: Local development uploads fallback, with production Supabase Storage / Cloudflare R2 bucket support.
 
 ## Stack
 
